@@ -1,43 +1,38 @@
 import { PlaywrightCrawler } from 'crawlee';
 
-// If you have a free proxy from Webshare, put it here:
-// const PROXY_URL = "http://user:pass@1.2.3.4:8080";
-const PROXY_URL = ""; 
-
 const crawler = new PlaywrightCrawler({
-    // If you have a proxy, uncomment this:
-    // proxyConfiguration: new ProxyConfiguration({ proxyUrls: [PROXY_URL] }),
-
     headless: true,
-    
-    // Attempt to look like a real human
-    browserPoolOptions: {
-        useFingerprints: true, 
-    },
+    browserPoolOptions: { useFingerprints: true },
 
     requestHandler: async ({ page, request, log }) => {
         log.info(`Checking ${request.url}...`);
+        
+        // ફાઈલમાં લખવા માટેનો ડેટા
+        let fileContent = "";
 
-        // 1. Wait for page to load
         try {
-            await page.waitForSelector('#productTitle', { timeout: 15000 });
-        } catch {
-            console.log("❌ Blocked or CAPTCHA detected.");
-            return;
+            // 1. ટાઈટલ શોધવાનો પ્રયત્ન કરો
+            await page.waitForSelector('#productTitle', { timeout: 10000 });
+            
+            const title = await page.locator('#productTitle').textContent();
+            const price = await page.locator('.a-price .a-offscreen').first().textContent();
+
+            console.log(`✅ SUCCESS: ${title?.trim()}`);
+            fileContent = `Status: Success\nTitle: ${title?.trim()}\nPrice: ${price?.trim()}`;
+
+        } catch (error) {
+            // 2. જો Amazon બ્લોક કરે અથવા એરર આવે
+            console.log("❌ Failed to scrape. Amazon might have blocked the IP.");
+            
+            // પાના પર શું લખ્યું છે તે ચેક કરીએ (ડીબગીંગ માટે)
+            // જો CAPTCHA હશે તો તે અહીં દેખાશે
+            const pageTitle = await page.title();
+            fileContent = `Status: Failed\nReason: Blocked or Selector Not Found\nError Message: ${error.message}\nPage Title: ${pageTitle}`;
         }
 
-        // 2. Extract Data
-        const title = await page.locator('#productTitle').textContent();
-        const price = await page.locator('.a-price .a-offscreen').first().textContent();
-
-        console.log('------------------------------------------------');
-        console.log(`✅ SUCCESS! Found Product:`);
-        console.log(`Title: ${title?.trim()}`);
-        console.log(`Price: ${price?.trim()}`);
-        console.log('------------------------------------------------');
-
-        // 3. Save to a simple file so we can download it from GitHub
-        await Bun.write("result.txt", `Title: ${title?.trim()}\nPrice: ${price?.trim()}`);
+        // 3. ગમે તે થાય, ફાઈલ તો બનવી જ જોઈએ!
+        await Bun.write("result.txt", fileContent);
+        console.log("📄 result.txt saved!");
     },
 });
 
