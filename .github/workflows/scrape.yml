@@ -22,4 +22,5 @@ jobs:
           bunx playwright install --with-deps chromium
 
       - name: Run Scraper
-        run: bun run index.js
+        run: |
+          xvfb-run bun run index.js
