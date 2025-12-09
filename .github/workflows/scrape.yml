@@ -1,7 +1,7 @@
 name: Test Amazon Scraper
 
 on:
-  workflow_dispatch: # Adds a "Run Now" button in GitHub
+  workflow_dispatch: # Adds a "Run Now" button
 
 jobs:
   scrape-test:
@@ -28,4 +28,4 @@ jobs:
         if: always()
         with:
           name: scrape-result
-          path: result.txt
+          path: result-*.txt
