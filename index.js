@@ -26,5 +26,5 @@ const crawler = new PlaywrightCrawler({
 });
 
 await crawler.run([
-    "https://www.example.com/"
+    "https://www.google.com/"
 ]);
