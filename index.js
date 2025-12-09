@@ -1,30 +1,43 @@
 import { PlaywrightCrawler } from "crawlee";
 
 const crawler = new PlaywrightCrawler({
-    headless: false,
-
+    headless: true,
     maxConcurrency: 1,
     navigationTimeoutSecs: 30,
 
     requestHandler: async ({ page, request }) => {
-        console.log(`Checking → ${request.url}`);
+        console.log(`Scraping => ${request.url}`);
 
+        // Wait page loaded
         await page.waitForLoadState("domcontentloaded");
+        await page.waitForTimeout(2000);
 
-        await page.waitForTimeout(3000); // Real user wait
+        // Try product title
+        let title = await page.locator("#productTitle").textContent().catch(() => null);
 
-        // Example scraping (not amazon-specific)
-        const title = await page.title();
-        const h1 = await page.locator("h1").first().textContent().catch(() => null);
+        // Try fallback (Amazon sometimes wraps in span)
+        if (!title) {
+            title = await page.locator("span#productTitle").textContent().catch(() => null);
+        }
 
-        console.log("=== RESULT ===");
+        // Try price selectors
+        let price =
+            await page.locator(".a-price .a-offscreen").first().textContent().catch(() => null)
+            || await page.locator("#priceblock_dealprice").textContent().catch(() => null)
+            || await page.locator("#priceblock_ourprice").textContent().catch(() => null);
+
+        // Try image
+        const image = await page.locator("#landingImage").getAttribute("src").catch(() => null);
+
+        console.log("\n======== SCRAPE RESULT ========");
         console.log("URL:", request.url);
-        console.log("PAGE TITLE:", title);
-        console.log("H1 TAG:", h1);
-        console.log("==============");
+        console.log("TITLE:", title?.trim());
+        console.log("PRICE:", price?.trim());
+        console.log("IMAGE:", image);
+        console.log("================================\n");
     },
 });
 
 await crawler.run([
-    "https://www.google.com/"
+    "https://www.amazon.in/dp/B0CHX6NQMD"
 ]);
