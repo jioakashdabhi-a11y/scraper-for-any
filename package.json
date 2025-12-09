@@ -1,23 +1,9 @@
 {
-    "name": "antibot-scraper",
-    "version": "1.0.0",
-    "description": "Amazon product scraper for price tracking",
-    "type": "module",
-    "main": "scraper.js",
-    "scripts": {
-        "start": "node scraper.js",
-        "test": "node scraper.js --test"
-    },
-    "keywords": [
-        "scraper",
-        "amazon",
-        "puppeteer"
-    ],
-    "author": "",
-    "license": "ISC",
-    "dependencies": {
-        "puppeteer": "^21.6.1",
-        "axios": "^1.6.5",
-        "dotenv": "^16.3.1"
-    }
+  "name": "amazon-test",
+  "module": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "crawlee": "^3.10.0",
+    "playwright": "^1.40.0"
+  }
 }
