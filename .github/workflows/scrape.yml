@@ -23,8 +23,7 @@ jobs:
       - name: Install Dependencies
         run: |
           bun install
-          bunx playwright install --with-deps chromium
 
       - name: Run Scraper
         run: |
-          xvfb-run bun run index.js ${{ github.event.inputs.asin }}
+          bun run index.js ${{ github.event.inputs.asin }}
