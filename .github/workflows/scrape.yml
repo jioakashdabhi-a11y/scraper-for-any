@@ -2,6 +2,10 @@ name: Test Amazon Scraper
 
 on:
   workflow_dispatch:
+    inputs:
+      asin:
+        description: "Product ASIN"
+        required: true
 
 jobs:
   scrape-test:
@@ -23,4 +27,4 @@ jobs:
 
       - name: Run Scraper
         run: |
-          xvfb-run bun run index.js
+          xvfb-run bun run index.js ${{ github.event.inputs.asin }}
