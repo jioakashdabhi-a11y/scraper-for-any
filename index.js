@@ -22,12 +22,17 @@ if (!asin) {
 
     await page.waitForTimeout(1500 + Math.random() * 2000);
 
-    // wait for product title
-    await page.waitForSelector("#productTitle", { timeout: 8000 });
+    await page.waitForSelector("#productTitle, span.a-size-large.product-title-word-break", {
+        timeout: 15000
+    });
 
-    const title = await page.locator("#productTitle").innerText();
-    const price = await page.locator("span.a-price-whole").first().innerText();
-    const rating = await page.locator("span.a-icon-alt").first().innerText();
+    let title = await page.locator("#productTitle").innerText().catch(async () => {
+        return await page.locator("span.a-size-large.product-title-word-break").innerText();
+    });
+
+    let price = await page.locator("span.a-price-whole").first().innerText().catch(() => "NA");
+
+    let rating = await page.locator("span.a-icon-alt").first().innerText().catch(() => "NA");
 
     console.log(`Title: ${title}`);
     console.log(`Price: ${price}`);
