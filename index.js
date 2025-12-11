@@ -18,6 +18,7 @@ if (!asin) {
     console.log(`Scraping: ${asin}`);
 
     await page.goto(url, { waitUntil: "domcontentloaded" });
+    console.log("Loaded page");
 
     // Scroll slowly to load dynamic content
     await page.evaluate(async () => {
@@ -89,5 +90,6 @@ if (!asin) {
 
     await browser.close();
 })();
+
 
 
