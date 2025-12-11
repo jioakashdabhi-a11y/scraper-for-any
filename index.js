@@ -18,17 +18,23 @@ if (!asin) {
     console.log(`Scraping: ${asin}`);
 
     await page.goto(url, { waitUntil: "domcontentloaded" });
-    console.log("Loaded page");
+    console.log("Step 1 done: Page Loaded");
 
-    // Scroll slowly to load dynamic content
-    await page.evaluate(async () => {
-        for (let i = 0; i < document.body.scrollHeight; i += 400) {
-            window.scrollTo(0, i);
-            await new Promise(res => setTimeout(res, 250));
-        }
-    });
+console.log("Step 2: Scroll start");
+await page.evaluate(async () => {
+    for (let i = 0; i < document.body.scrollHeight; i += 400) {
+        window.scrollTo(0, i);
+        await new Promise(res => setTimeout(res, 250));
+    }
+});
+console.log("Step 2 done: Scroll complete");
 
-    await page.waitForTimeout(2000);
+console.log("Step 3: Waiting for title");
+await page.waitForSelector("#productTitle, span.a-size-large.product-title-word-break", {
+    timeout: 10000
+});
+console.log("Step 3 done: Title found");
+
 
     let title = "NA";
     let image = "NA";
@@ -90,6 +96,7 @@ if (!asin) {
 
     await browser.close();
 })();
+
 
 
 
