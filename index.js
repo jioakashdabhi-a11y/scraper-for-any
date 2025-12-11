@@ -15,11 +15,8 @@ if (!asin) {
     const page = await browser.newPage();
     const url = `https://www.amazon.in/dp/${asin}`;
 
-    console.log(`Scraping: ${asin}`);
-
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
-    // Scroll slowly to load dynamic content
     await page.evaluate(async () => {
         for (let i = 0; i < document.body.scrollHeight; i += 400) {
             window.scrollTo(0, i);
@@ -27,14 +24,13 @@ if (!asin) {
         }
     });
 
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
 
     let title = "NA";
+    let price = "NA";
     let image = "NA";
     let inStock = "NA";
-    let price = "NA";
 
-    /** TITLE **/
     try {
         title = await page.locator("#productTitle").innerText();
     } catch {
@@ -43,7 +39,14 @@ if (!asin) {
         } catch {}
     }
 
-    /** IMAGE **/
+    try {
+        price = await page.locator("span.a-price-whole").first().innerText();
+    } catch {
+        try {
+            price = await page.locator("span.a-offscreen").first().innerText();
+        } catch {}
+    }
+
     try {
         image = await page.locator("#landingImage").getAttribute("src");
     } catch {
@@ -53,16 +56,6 @@ if (!asin) {
         } catch {}
     }
 
-    /** PRICE **/
-    try {
-        price = await page.locator("span.a-price-whole").first().innerText();
-    } catch {
-        try {
-            price = await page.locator("span.a-offscreen").first().innerText();
-        } catch {}
-    }
-
-    /** IN STOCK **/
     try {
         inStock = await page.locator("#availability .a-color-success").innerText();
     } catch {
@@ -71,13 +64,16 @@ if (!asin) {
         } catch {}
     }
 
-    console.log("\n===== RESULT =====");
-    console.log(`ASIN: ${asin}`);
-    console.log(`Title: ${title}`);
-    console.log(`Price: ${price}`);
-    console.log(`Image: ${image}`);
-    console.log(`In Stock: ${inStock}`);
-    console.log("===================\n");
+    const result = {
+        asin,
+        title: title.trim(),
+        price: price.trim(),
+        image,
+        inStock: inStock.trim(),
+        updatedAt: new Date().toISOString()
+    };
+
+    console.log(JSON.stringify(result, null, 2));
 
     await browser.close();
 })();
