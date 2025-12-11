@@ -33,4 +33,4 @@ jobs:
         with:
           name: page
           path: page.png
-
+          if-no-files-found: warn
