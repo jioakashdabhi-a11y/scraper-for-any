@@ -16,6 +16,7 @@ if (!asin) {
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     console.log("Page Loaded ✔");
+    await page.screenshot({ path: "page.png", fullPage: true });
 
     // GET FULL HTML FIRST
     const raw = await page.content();
@@ -61,3 +62,4 @@ if (!asin) {
 
     await browser.close();
 })();
+
