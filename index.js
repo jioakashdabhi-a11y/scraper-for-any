@@ -72,12 +72,16 @@ if (!asin) {
     }
 
     console.log("\n===== RESULT =====");
-    console.log(`ASIN: ${asin}`);
-    console.log(`Title: ${title}`);
-    console.log(`Price: ${price}`);
-    console.log(`Image: ${image}`);
-    console.log(`In Stock: ${inStock}`);
+    const result = {
+        asin,
+        title: title.trim(),
+        price: price.trim(),
+        image,
+        inStock: inStock.trim(),
+    };
+    console.log(`Result: ${result}`);
     console.log("===================\n");
 
     await browser.close();
 })();
+
