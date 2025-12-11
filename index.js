@@ -8,95 +8,56 @@ if (!asin) {
 }
 
 (async () => {
-    const browser = await chromium.launch({
-        headless: true,
-    });
-
+    const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     const url = `https://www.amazon.in/dp/${asin}`;
 
     console.log(`Scraping: ${asin}`);
 
-    await page.goto(url, { waitUntil: "domcontentloaded" });
-    console.log("Step 1 done: Page Loaded");
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+    console.log("Page Loaded ✔");
 
-console.log("Step 2: Scroll start");
-await page.evaluate(async () => {
-    for (let i = 0; i < document.body.scrollHeight; i += 400) {
-        window.scrollTo(0, i);
-        await new Promise(res => setTimeout(res, 250));
-    }
-});
-console.log("Step 2 done: Scroll complete");
+    // GET FULL HTML FIRST
+    const raw = await page.content();
 
-console.log("Step 3: Waiting for title");
-await page.waitForSelector("#productTitle, span.a-size-large.product-title-word-break", {
-    timeout: 10000
-});
-console.log("Step 3 done: Title found");
-
-
-    let title = "NA";
-    let image = "NA";
-    let inStock = "NA";
-    let price = "NA";
-
-    /** TITLE **/
-    try {
-        title = await page.locator("#productTitle").innerText();
-    } catch {
-        try {
-            title = await page.locator("span.a-size-large.product-title-word-break").innerText();
-        } catch {}
+    // Detect CAPTCHA block
+    if (raw.includes("captcha") || raw.includes("Robot Check") || raw.includes("unusual traffic")) {
+        console.log("❌ Amazon blocked this request (CI/CD IP flagged).");
+        process.exit(1);
     }
 
-    /** IMAGE **/
-    try {
-        image = await page.locator("#landingImage").getAttribute("src");
-    } catch {
-        try {
-            const imgJson = await page.locator("img[data-a-dynamic-image]").getAttribute("data-a-dynamic-image");
-            image = Object.keys(JSON.parse(imgJson))[0];
-        } catch {}
-    }
+    // Extract DATA without waiting for selector
+    let title = await page.evaluate(() =>
+        document.querySelector("#productTitle")?.innerText?.trim() ||
+        document.querySelector("span.a-size-large.product-title-word-break")?.innerText?.trim() ||
+        "NA"
+    );
 
-    /** PRICE **/
-    try {
-        price = await page.locator("span.a-price-whole").first().innerText();
-    } catch {
-        try {
-            price = await page.locator("span.a-offscreen").first().innerText();
-        } catch {}
-    }
+    let price = await page.evaluate(() =>
+        document.querySelector("span.a-price-whole")?.innerText?.trim() ||
+        document.querySelector("span.a-offscreen")?.innerText?.trim() ||
+        "NA"
+    );
 
-    /** IN STOCK **/
-    try {
-        inStock = await page.locator("#availability .a-color-success").innerText();
-    } catch {
-        try {
-            inStock = await page.locator("span.a-size-medium.a-color-success").innerText();
-        } catch {}
-    }
+    let image = await page.evaluate(() => {
+        let img = document.querySelector("#landingImage")?.src;
+        if (img) return img;
+
+        let dyn = document.querySelector("img[data-a-dynamic-image]")?.getAttribute("data-a-dynamic-image");
+        if (dyn) return Object.keys(JSON.parse(dyn))[0];
+
+        return "NA";
+    });
+
+    let inStock = await page.evaluate(() =>
+        document.querySelector("#availability .a-color-success")?.innerText?.trim() ||
+        document.querySelector("span.a-size-medium.a-color-success")?.innerText?.trim() ||
+        "NA"
+    );
 
     console.log("\n===== RESULT =====");
-     console.log(`ASIN: ${asin}`);
-    console.log(`Title: ${title}`);
-    console.log(`Price: ${price}`);
-    console.log(`Image: ${image}`);
-    console.log(`In Stock: ${inStock}`);
-    // const result = {
-    //     asin,
-    //     title: title.trim(),
-    //     price: price.trim(),
-    //     image,
-    //     inStock: inStock.trim(),
-    // };
-    // console.log(`Result: ${result}`);
+    console.log({ asin, title, price, image, inStock });
     console.log("===================\n");
 
     await browser.close();
 })();
-
-
-
-
