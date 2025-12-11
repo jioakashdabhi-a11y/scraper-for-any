@@ -16,50 +16,45 @@ if (!asin) {
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     console.log("Page Loaded ✔");
-    await page.screenshot({ path: "page.png", fullPage: true });
 
-    // GET FULL HTML FIRST
-    const raw = await page.content();
+    // Try to wait for element to ATTACH (not visible)
+    await page.waitForSelector("#productTitle", { state: "attached", timeout: 15000 }).catch(() => {});
+    await page.waitForSelector("span.a-size-large.product-title-word-break", { state: "attached", timeout: 15000 }).catch(() => {});
 
-    // Detect CAPTCHA block
-    if (raw.includes("captcha") || raw.includes("Robot Check") || raw.includes("unusual traffic")) {
-        console.log("❌ Amazon blocked this request (CI/CD IP flagged).");
-        process.exit(1);
-    }
-
-    // Extract DATA without waiting for selector
-    let title = await page.evaluate(() =>
+    // Extract using evaluate() → works even if element not "visible"
+    const title = await page.evaluate(() =>
         document.querySelector("#productTitle")?.innerText?.trim() ||
         document.querySelector("span.a-size-large.product-title-word-break")?.innerText?.trim() ||
         "NA"
     );
 
-    let price = await page.evaluate(() =>
+    const price = await page.evaluate(() =>
         document.querySelector("span.a-price-whole")?.innerText?.trim() ||
         document.querySelector("span.a-offscreen")?.innerText?.trim() ||
         "NA"
     );
 
-    let image = await page.evaluate(() => {
-        let img = document.querySelector("#landingImage")?.src;
-        if (img) return img;
+    const image = await page.evaluate(() => {
+        const img1 = document.querySelector("#landingImage")?.src;
+        if (img1) return img1;
 
-        let dyn = document.querySelector("img[data-a-dynamic-image]")?.getAttribute("data-a-dynamic-image");
+        const dyn = document.querySelector("img[data-a-dynamic-image]")?.getAttribute("data-a-dynamic-image");
         if (dyn) return Object.keys(JSON.parse(dyn))[0];
 
         return "NA";
     });
 
-    let inStock = await page.evaluate(() =>
+    const inStock = await page.evaluate(() =>
         document.querySelector("#availability .a-color-success")?.innerText?.trim() ||
         document.querySelector("span.a-size-medium.a-color-success")?.innerText?.trim() ||
         "NA"
     );
 
+    const result = { asin, title, price, image, inStock };
+
     console.log("\n===== RESULT =====");
-    console.log({ asin, title, price, image, inStock });
+    console.log(JSON.stringify(result, null, 2));
     console.log("===================\n");
 
     await browser.close();
 })();
-
