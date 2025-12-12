@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import fs from "fs";
 
 const asin = process.argv[2];
 
@@ -17,30 +18,40 @@ if (!asin) {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     console.log("Page Loaded ✔");
 
-    // 🔥 GET RAW HTML FOR CAPTCHA DETECTION
-    const html = await page.content();
-    
-    const captchaWords = [
-        "captcha",
-        "Robot Check",
-        "unusual traffic",
-        "automated access",
-        "prove you're not a robot",
-        "Enter the characters you see"
-    ];
+    // ---------------------------
+    // TRY CLICK CONTINUE SHOPPING
+    // ---------------------------
+    try {
+        console.log("Checking for 'Continue shopping' button...");
 
-    const isCaptcha = captchaWords.some(word => html.toLowerCase().includes(word.toLowerCase()));
+        const continueBtn = page.getByRole("button", { name: "Continue shopping" });
 
-    if (isCaptcha) {
-        await page.locator('button.a-button-text:has-text("Continue shopping")').click();
+        if (await continueBtn.count() > 0) {
+            console.log("Continue shopping button found ✔");
+            await continueBtn.click();
+            console.log("Clicked 'Continue shopping' ✔");
+        } else {
+            console.log("No Continue shopping button found ❌");
+        }
+    } catch (err) {
+        console.log("⚠ Error clicking Continue shopping (ignored)");
     }
 
-    console.log("No CAPTCHA detected ✔");
+    // ---------------------------
+    // CAPTCHA CHECK
+    // ---------------------------
+    const html = await page.content();
+    if (html.includes("captcha") || html.includes("Robot Check")) {
+        console.log("❌ CAPTCHA detected - stopping.");
+        const result = { asin, captcha: true };
+        console.log(JSON.stringify(result, null, 2));
+        await browser.close();
+        return;
+    }
 
-    // Continue scraping
-    await page.waitForSelector("#productTitle", { state: "attached", timeout: 15000 }).catch(() => {});
-    await page.waitForSelector("span.a-size-large.product-title-word-break", { state: "attached", timeout: 15000 }).catch(() => {});
-
+    // ---------------------------
+    // SCRAPE DATA
+    // ---------------------------
     const title = await page.evaluate(() =>
         document.querySelector("#productTitle")?.innerText?.trim() ||
         document.querySelector("span.a-size-large.product-title-word-break")?.innerText?.trim() ||
@@ -69,7 +80,14 @@ if (!asin) {
         "NA"
     );
 
-    const result = { asin, title, price, image, inStock, captcha: false };
+    const result = {
+        asin,
+        title,
+        price,
+        image,
+        inStock,
+        captcha: false
+    };
 
     console.log("\n===== RESULT =====");
     console.log(JSON.stringify(result, null, 2));
@@ -77,4 +95,3 @@ if (!asin) {
 
     await browser.close();
 })();
-
