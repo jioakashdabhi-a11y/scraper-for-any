@@ -1,5 +1,4 @@
 import { chromium } from "playwright";
-import fs from "fs";
 
 const asin = process.argv[2];
 
@@ -17,18 +16,78 @@ if (!asin) {
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     console.log("Page Loaded ✔");
+
+    // 🔥 GET RAW HTML FOR CAPTCHA DETECTION
+    const html = await page.content();
     
-    // Extract using evaluate() → works even if element not "visible"
+    const captchaWords = [
+        "captcha",
+        "Robot Check",
+        "unusual traffic",
+        "automated access",
+        "prove you're not a robot",
+        "Enter the characters you see"
+    ];
+
+    const isCaptcha = captchaWords.some(word => html.toLowerCase().includes(word.toLowerCase()));
+
+    if (isCaptcha) {
+        console.log("❌ CAPTCHA detected — Amazon blocked this request.");
+        console.log("Returning captcha: true");
+        
+        const result = {
+            asin,
+            captcha: true,
+            title: "NA",
+            price: "NA",
+            image: "NA",
+            inStock: "NA"
+        };
+
+        console.log(JSON.stringify(result, null, 2));
+        await browser.close();
+        process.exit(0);
+    }
+
+    console.log("No CAPTCHA detected ✔");
+
+    // Continue scraping
+    await page.waitForSelector("#productTitle", { state: "attached", timeout: 15000 }).catch(() => {});
+    await page.waitForSelector("span.a-size-large.product-title-word-break", { state: "attached", timeout: 15000 }).catch(() => {});
+
     const title = await page.evaluate(() =>
         document.querySelector("#productTitle")?.innerText?.trim() ||
         document.querySelector("span.a-size-large.product-title-word-break")?.innerText?.trim() ||
         "NA"
     );
 
-    const html = await page.content();
+    const price = await page.evaluate(() =>
+        document.querySelector("span.a-price-whole")?.innerText?.trim() ||
+        document.querySelector("span.a-offscreen")?.innerText?.trim() ||
+        "NA"
+    );
 
-    fs.writeFileSync("page.html", html, "utf-8");
-  
+    const image = await page.evaluate(() => {
+        const img1 = document.querySelector("#landingImage")?.src;
+        if (img1) return img1;
+
+        const dyn = document.querySelector("img[data-a-dynamic-image]")?.getAttribute("data-a-dynamic-image");
+        if (dyn) return Object.keys(JSON.parse(dyn))[0];
+
+        return "NA";
+    });
+
+    const inStock = await page.evaluate(() =>
+        document.querySelector("#availability .a-color-success")?.innerText?.trim() ||
+        document.querySelector("span.a-size-medium.a-color-success")?.innerText?.trim() ||
+        "NA"
+    );
+
+    const result = { asin, title, price, image, inStock, captcha: false };
+
+    console.log("\n===== RESULT =====");
+    console.log(JSON.stringify(result, null, 2));
+    console.log("===================\n");
+
     await browser.close();
 })();
-
