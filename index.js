@@ -32,11 +32,19 @@ if (!asin) {
     const isCaptcha = captchaWords.some(word => html.toLowerCase().includes(word.toLowerCase()));
 
     if (isCaptcha) {
-        console.log("❌ CAPTCHA detected — Amazon blocked this request.");
-        console.log("Returning captcha: true");
-        
-        await page.locator('button.a-button-text:has-text("Continue shopping")').click();
+    console.log("❌ CAPTCHA detected — Amazon blocked this request.");
+    console.log("Returning captcha: true");
+
+    const btn = page.locator('button.a-button-text:has-text("Continue shopping")');
+    if (await btn.count() > 0) {
+        await btn.click();
     }
+
+    // Stop here (no scraping)
+    await browser.close();
+    process.exit(0);
+}
+
 
     console.log("No CAPTCHA detected ✔");
 
@@ -80,3 +88,4 @@ if (!asin) {
 
     await browser.close();
 })();
+
