@@ -32,21 +32,7 @@ if (!asin) {
     const isCaptcha = captchaWords.some(word => html.toLowerCase().includes(word.toLowerCase()));
 
     if (isCaptcha) {
-        console.log("❌ CAPTCHA detected — Amazon blocked this request.");
-        console.log("Returning captcha: true");
-        
-        const result = {
-            asin,
-            captcha: true,
-            title: "NA",
-            price: "NA",
-            image: "NA",
-            inStock: "NA"
-        };
-
-        console.log(JSON.stringify(result, null, 2));
-        await browser.close();
-        process.exit(0);
+        await page.locator('button.a-button-text:has-text("Continue shopping")').click();
     }
 
     console.log("No CAPTCHA detected ✔");
@@ -91,3 +77,4 @@ if (!asin) {
 
     await browser.close();
 })();
+
