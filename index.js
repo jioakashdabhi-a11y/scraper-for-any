@@ -26,21 +26,32 @@ async function scrapeProduct(asin, attempt = 1) {
     if (isCaptcha) {
         console.log("❌ Amazon CAPTCHA detected.");
 
-        // Try clicking "Continue shopping"
         try {
             const btn = page.locator('button.a-button-text:has-text("Continue shopping")');
+
             if (await btn.count() > 0) {
+                console.log("Found Continue shopping button ✔");
                 await btn.click();
                 console.log("Clicked Continue shopping ✔");
+
+                // ⭐ IMPORTANT: wait for page update after click
+                await Promise.race([
+                    page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {}),
+                    page.waitForTimeout(1500)
+                ]);
+
+                console.log("Page Reloaded/Updated after Continue shopping ✔");
             }
-        } catch {}
+        } catch (err) {
+            console.log("⚠ Error clicking Continue shopping (ignored)");
+        }
 
         await browser.close();
 
-        // Retry max 2 times
+        // Retry max 2 times total
         if (attempt < 3) {
             console.log("🔁 Retrying...");
-            await new Promise(res => setTimeout(res, 2000)); // wait 2 sec
+            await new Promise(res => setTimeout(res, 2000)); // wait 2 sec before retry
             return scrapeProduct(asin, attempt + 1);
         }
 
