@@ -39,10 +39,6 @@ if (!asin) {
     if (await btn.count() > 0) {
         await btn.click();
     }
-
-    // Stop here (no scraping)
-    await browser.close();
-    process.exit(0);
 }
 
 
@@ -88,4 +84,5 @@ if (!asin) {
 
     await browser.close();
 })();
+
 
