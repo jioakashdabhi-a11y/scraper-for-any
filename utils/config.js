@@ -8,30 +8,46 @@ export const delay = (min = 400, max = 1200) => {
     return new Promise(res => setTimeout(res, Math.random() * (max - min) + min));
 };
 
+// Send scraped result to backend
 export async function sendUpdate(data) {
-    console.log(`📨 Sending update for ${data.asin}`);
+    try {
+        const res = await fetch(POST_UPDATE, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${TOKEN}`
+            },
+            body: JSON.stringify(data)
+        });
 
-    await fetch(POST_UPDATE, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${TOKEN}`
-        },
-        body: JSON.stringify(data)
-    }).catch(() => console.log("❌ Failed sending update"));
+        return {
+            success: res.ok,
+            status: res.status
+        };
+
+    } catch (err) {
+        return {
+            success: false,
+            error: true,
+            message: err.message
+        };
+    }
 }
 
+// Fetch pending products
 export async function getPending() {
-    console.log("\n📡 Fetching pending products...");
+    try {
+        const res = await fetch(GET_PENDING, {
+            headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
 
-    const res = await fetch(GET_PENDING, {
-        headers: { "Authorization": `Bearer ${TOKEN}` }
-    });
+        if (!res.ok) {
+            return [];
+        }
 
-    if (!res.ok) {
-        console.log("❌ Failed to get pending products");
+        return await res.json();
+
+    } catch {
         return [];
     }
-
-    return await res.json();
 }

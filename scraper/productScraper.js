@@ -1,11 +1,9 @@
 import { chromium } from "playwright";
-import { delay } from "../utils/config.js";
+import { delay } from "../utils/config";
 
 const MAX_RETRY = 3;
 
 export const scrapeProduct = async (asin, attempt = 1) => {
-    console.log(`🔍 Scraping ASIN: ${asin} | Attempt ${attempt}`);
-
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -16,49 +14,52 @@ export const scrapeProduct = async (asin, attempt = 1) => {
         timeout: 20000
     });
 
+    // Check captcha
     const html = await page.content();
-    const captchaWords = ["captcha", "robot check", "unusual traffic", "automated access"];
-    const isCaptcha = captchaWords.some(w => html.toLowerCase().includes(w.toLowerCase()));
+    const isCaptcha = html.toLowerCase().includes("captcha");
 
     if (isCaptcha) {
-        console.log("⚠ CAPTCHA detected.");
-
+        // Try Continue Shopping button (NO browser.close)
         try {
             const btn = page.locator('button.a-button-text:has-text("Continue shopping")');
 
             if (await btn.count() > 0) {
-                console.log("🟡 Continue Shopping button found");
                 await btn.click();
 
                 await Promise.race([
-                    page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => { }),
+                    page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {}),
                     delay(1500, 2500)
                 ]);
-
-                console.log("🔄 Page updated after Continue Shopping click");
             }
-        } catch (err) {
-            console.log("❌ Error clicking continue shopping", err.message);
+        } catch {}
+
+        // 🔍 Re-check CAPTCHA after clicking Continue Shopping
+        const html2 = await page.content();
+        const stillCaptcha = html2.toLowerCase().includes("captcha");
+
+        if (stillCaptcha) {
+            // ❗ NOW close browser before retry
+            await browser.close();
+
+            if (attempt < MAX_RETRY) {
+                await delay(1500, 2500);
+                return scrapeProduct(asin, attempt + 1);
+            }
+
+            return {
+                asin,
+                title: "NA",
+                price: "NA",
+                image: "NA",
+                inStock: "NA",
+                captcha: true
+            };
         }
 
-        await browser.close();
-
-        if (attempt < MAX_RETRY) {
-            console.log("🔁 Retrying after captcha bypass...");
-            await delay(1500, 2500);
-            return scrapeProduct(asin, attempt + 1);
-        }
-
-        return {
-            asin,
-            title: "NA",
-            price: "NA",
-            image: "NA",
-            inStock: "NA",
-            captcha: true
-        };
+        // 😎 Captcha bypassed successfully — continue scraping SAME BROWSER
     }
 
+    // Extract data normally
     await delay(300, 600);
 
     const data = await page.evaluate(() => {
@@ -87,7 +88,6 @@ export const scrapeProduct = async (asin, attempt = 1) => {
     });
 
     await browser.close();
-
     await delay(1200, 2500);
 
     return { asin, ...data, captcha: false };

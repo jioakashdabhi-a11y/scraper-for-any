@@ -10,14 +10,13 @@ async function main() {
     }
 
     const pending = await getPending();
-    console.log(`\n📝 Pending products: ${pending.length}`);
 
     for (const asin of pending) {
         const data = await scrapeProduct(asin);
         await sendUpdate(data);
     }
 
-    console.log("\n✅ All scraping completed.");
+    return true;
 }
 
 main();
