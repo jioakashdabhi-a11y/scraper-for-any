@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-import { delay } from "../utils/config";
+import { delay } from "../utils/config.js";
 
 const MAX_RETRY = 3;
 
@@ -16,7 +16,6 @@ export const scrapeProduct = async (asin, attempt = 1) => {
         timeout: 20000
     });
 
-    // Detect CAPTCHA
     const html = await page.content();
     const captchaWords = ["captcha", "robot check", "unusual traffic", "automated access"];
     const isCaptcha = captchaWords.some(w => html.toLowerCase().includes(w.toLowerCase()));
@@ -29,38 +28,27 @@ export const scrapeProduct = async (asin, attempt = 1) => {
 
             if (await btn.count() > 0) {
                 console.log("🟡 Continue Shopping button found");
-
                 await btn.click();
-                console.log("🟢 Clicked Continue Shopping");
 
-                // IMPORTANT: Do NOT close browser here
                 await Promise.race([
-                    page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {}),
+                    page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => { }),
                     delay(1500, 2500)
                 ]);
 
                 console.log("🔄 Page updated after Continue Shopping click");
-            } else {
-                console.log("⚪ No Continue Shopping button found");
             }
-
         } catch (err) {
-            console.log("❌ Error clicking Continue Shopping", err.message);
+            console.log("❌ Error clicking continue shopping", err.message);
         }
 
-        // After clicking Continue Shopping → retry AGAIN using SAME browser session
+        await browser.close();
+
         if (attempt < MAX_RETRY) {
             console.log("🔁 Retrying after captcha bypass...");
             await delay(1500, 2500);
-
-            // ❗ DO NOT close browser
-            await browser.close();
-
             return scrapeProduct(asin, attempt + 1);
         }
 
-        // FINAL FAIL AFTER ALL RETRIES
-        await browser.close();
         return {
             asin,
             title: "NA",
@@ -71,7 +59,6 @@ export const scrapeProduct = async (asin, attempt = 1) => {
         };
     }
 
-    // No CAPTCHA → continue scraping
     await delay(300, 600);
 
     const data = await page.evaluate(() => {
@@ -100,6 +87,7 @@ export const scrapeProduct = async (asin, attempt = 1) => {
     });
 
     await browser.close();
+
     await delay(1200, 2500);
 
     return { asin, ...data, captcha: false };
