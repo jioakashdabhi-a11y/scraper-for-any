@@ -3,6 +3,7 @@ import { sendUpdate, getPending } from "./utils/config.js";
 
 async function main() {
     console.log(process.argv)
+    console.log(process.env)
     // const inputAsin = process.argv[2];
 
     // if (inputAsin) {
