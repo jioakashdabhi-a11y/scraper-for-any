@@ -41,4 +41,4 @@ jobs:
         # env:
         #   API_TOKEN: ${{ secrets.API_TOKEN }}
         #   BACKEND_URL: ${{ secrets.BACKEND_URL }}
-        run: xvfb-run bun run index.js
+        run: xvfb-run bun run index.js ${{ github.env.inputs.id }} ${{ github.env.inputs.url }} ${{ github.env.inputs.chatId }} ${{ github.env.inputs.message_id }} ${{ github.env.inputs.selectors }}
