@@ -12,7 +12,7 @@ async function main() {
         : null;
 
     const scrapedData = await scrapeProduct(url, selectors);
-    data = { ...scrapedData, id, url, chatId, messageId }
+    const data = { ...scrapedData, id, url, chatId, messageId }
     console.log(await data)
 
 }
