@@ -11,8 +11,8 @@ async function main() {
         ? JSON.parse(process.argv[6])
         : null;
 
-    const data = scrapeProduct(url, selectors);
-    console.log(data)
+    const data = await scrapeProduct(url, selectors);
+    console.log(await data)
 
 }
 
