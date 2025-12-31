@@ -3,8 +3,20 @@ name: Test Amazon Scraper
 on:
   workflow_dispatch:
     inputs:
-      asin:
-        description: "Product ASIN"
+      id:
+        description: "Product DB ID"
+        required: true
+      url:
+        description: "Product URL"
+        required: true
+      chatId:
+        description: "Telegram chat ID"
+        required: true
+      message_id:
+        description: "Telegram message ID"
+        required: true
+      selectors:
+        description: "Scraper selectors JSON"
         required: true
 
 jobs:
