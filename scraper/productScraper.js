@@ -1,94 +1,104 @@
 import { chromium } from "playwright";
 import { delay } from "../utils/config";
 
-const MAX_RETRY = 3;
+const MAX_RETRY = 2;
 
-export const scrapeProduct = async (asin, attempt = 1) => {
-    const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
+export const scrapeProduct = async (url, selectors, attempt = 1) => {
+    let browser;
 
-    await delay(300, 900);
+    try {
+        browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
 
-    await page.goto(`https://www.amazon.in/dp/${asin}`, {
-        waitUntil: "domcontentloaded",
-        timeout: 20000
-    });
+        await page.goto(url, {
+            waitUntil: "domcontentloaded",
+            timeout: 60000
+        });
 
-    // Check captcha
-    const html = await page.content();
-    const isCaptcha = html.toLowerCase().includes("captcha");
+        await delay();
 
-    if (isCaptcha) {
-        // Try Continue Shopping button (NO browser.close)
-        try {
-            const btn = page.locator('button.a-button-text:has-text("Continue shopping")');
+        // 🔹 CAPTCHA detection
+        let html = await page.content();
+        const isCaptcha = html.toLowerCase().includes("captcha");
+
+        if (isCaptcha && selectors.captcha?.text) {
+            const btn = page.locator(
+                `button:has-text("${selectors.captcha.text}")`
+            );
 
             if (await btn.count() > 0) {
                 await btn.click();
-
                 await Promise.race([
-                    page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {}),
-                    delay(1500, 2500)
+                    page.waitForLoadState("networkidle", { timeout: 7000 }),
+                    delay()
                 ]);
             }
-        } catch {}
 
-        // 🔍 Re-check CAPTCHA after clicking Continue Shopping
-        const html2 = await page.content();
-        const stillCaptcha = html2.toLowerCase().includes("captcha");
-
-        if (stillCaptcha) {
-            // ❗ NOW close browser before retry
-            await browser.close();
-
-            if (attempt < MAX_RETRY) {
-                await delay(1500, 2500);
-                return scrapeProduct(asin, attempt + 1);
+            html = await page.content();
+            if (html.toLowerCase().includes("captcha")) {
+                throw new Error("Captcha still present");
             }
-
-            return {
-                asin,
-                title: "NA",
-                price: "NA",
-                image: "NA",
-                inStock: "NA",
-                captcha: true
-            };
         }
 
-        // 😎 Captcha bypassed successfully — continue scraping SAME BROWSER
-    }
+        const data = {};
 
-    // Extract data normally
-    await delay(300, 600);
+        // 🔹 Extract selectors
+        for (const [key, selector] of Object.entries(selectors)) {
+            if (key === "captcha") continue;
 
-    const data = await page.evaluate(() => {
-        const pick = sel => document.querySelector(sel)?.innerText?.trim() || "NA";
+            try {
+                // fallback selectors support
+                const selList = Array.isArray(selector)
+                    ? selector
+                    : [selector];
 
-        let image =
-            document.querySelector("#landingImage")?.src ||
-            (() => {
-                const dyn = document.querySelector("img[data-a-dynamic-image]")?.getAttribute("data-a-dynamic-image");
-                if (!dyn) return "NA";
-                return Object.keys(JSON.parse(dyn))[0];
-            })();
+                for (const sel of selList) {
+                    const value = await page.evaluate((s) => {
+                        const el = document.querySelector(s);
+                        if (!el) return null;
+                        return el.src || el.innerText?.replace(/\s+/g, " ").trim();
+                    }, sel);
+
+                    if (value) {
+                        data[key] = (key === "price" || "mrp") ? cleanPrice(value) : value;
+                        break;
+                    }
+                }
+
+                if (!data[key]) data[key] = null;
+
+            } catch {
+                data[key] = null;
+            }
+        }
+
+        await browser.close();
+        return data;
+
+    } catch (err) {
+        if (browser) await browser.close();
+
+        if (attempt < MAX_RETRY) {
+            await delay(2000);
+            return scrapeProduct(url, selectors, attempt + 1);
+        }
 
         return {
-            title:
-                pick("#productTitle") ||
-                pick("span.a-size-large.product-title-word-break"),
-            price:
-                pick("span.a-price-whole") ||
-                pick("span.a-offscreen"),
-            inStock:
-                pick("#availability .a-color-success") ||
-                pick("span.a-size-medium.a-color-success"),
-            image
+            error: true,
+            message: err.message
         };
-    });
-
-    await browser.close();
-    await delay(1200, 2500);
-
-    return { asin, ...data, captcha: false };
+    }
 };
+
+const cleanPrice = (text) => {
+    if (!text) return null;
+
+    const cleaned = text
+        .replace(/[₹\n]/g, "")
+        .replace(/\.00$/, "")
+        .replace(/\s*\.$/, "")
+        .trim();
+
+
+    return cleaned;
+}

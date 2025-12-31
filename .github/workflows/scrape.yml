@@ -26,7 +26,7 @@ jobs:
           bunx playwright install --with-deps chromium
 
       - name: Run Scraper
-        env:
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          BACKEND_URL: ${{ secrets.BACKEND_URL }}
-        run: xvfb-run bun run index.js ${{ github.event.inputs.asin }}
+        # env:
+        #   API_TOKEN: ${{ secrets.API_TOKEN }}
+        #   BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: xvfb-run bun run index.js ${{ github.event.inputs }}

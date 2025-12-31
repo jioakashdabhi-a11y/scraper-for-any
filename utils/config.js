@@ -4,8 +4,11 @@ export const BACKEND = process.env.BACKEND_URL;
 export const GET_PENDING = `${BACKEND}/api/products/pending`;
 export const POST_UPDATE = `${BACKEND}/api/products/updates`;
 
-export const delay = (min = 400, max = 1200) => {
-    return new Promise(res => setTimeout(res, Math.random() * (max - min) + min));
+export const delay = () => {
+    const base = 300 + Math.random() * 700;
+    const jitter = Math.sin(Math.random() * Math.PI) * 300;
+    const time = base + jitter;
+    return new Promise(res => setTimeout(res, time));
 };
 
 // Send scraped result to backend
