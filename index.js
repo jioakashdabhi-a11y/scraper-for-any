@@ -12,6 +12,7 @@ async function main() {
         : null;
 
     const data = await scrapeProduct(url, selectors);
+    data += { id, url, chatId, messageId }
     console.log(await data)
 
 }
