@@ -11,8 +11,8 @@ async function main() {
         ? JSON.parse(process.argv[6])
         : null;
 
-    const data = await scrapeProduct(url, selectors);
-    data += { id, url, chatId, messageId }
+    const scrapedData = await scrapeProduct(url, selectors);
+    data = { ...scrapedData, id, url, chatId, messageId }
     console.log(await data)
 
 }
